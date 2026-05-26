@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+.cursor/
+*.egg-info/
+.pytest_cache/
+
+# Training data is too large for GitHub (download separately)
+Property_Assessment_Data.csv
+Recreation_Facilities_*.csv

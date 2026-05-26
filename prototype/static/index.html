@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Edmonton Housing Price Predictor</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --panel-border: #2a3544;
+      --text: #e8edf4;
+      --muted: #8b9cb3;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --success: #22c55e;
+      --danger: #ef4444;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      height: 100vh;
+    }
+
+    .sidebar {
+      background: var(--panel);
+      border-right: 1px solid var(--panel-border);
+      padding: 1.25rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      margin: 0;
+      font-weight: 600;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.875rem;
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    .metrics {
+      display: flex;
+      gap: 0.75rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .metric-pill {
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      border-radius: 999px;
+      padding: 0.25rem 0.6rem;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    input, select {
+      background: var(--bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 0.55rem 0.65rem;
+      font-size: 0.9rem;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65rem;
+    }
+
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    button:hover:not(:disabled) { background: var(--accent-hover); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    button.secondary {
+      background: transparent;
+      border: 1px solid var(--panel-border);
+      color: var(--text);
+      padding: 0.55rem 0.75rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    button.secondary:hover:not(:disabled) {
+      background: rgba(59, 130, 246, 0.12);
+      border-color: rgba(59, 130, 246, 0.35);
+    }
+
+    .address-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.5rem;
+      align-items: start;
+    }
+
+    .address-autocomplete {
+      position: relative;
+      min-width: 0;
+    }
+
+    .address-suggestions {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: var(--bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      max-height: 220px;
+      overflow-y: auto;
+      z-index: 20;
+      display: none;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+    }
+
+    .address-suggestions.visible {
+      display: block;
+    }
+
+    .address-suggestion {
+      padding: 0.65rem 0.75rem;
+      font-size: 0.82rem;
+      line-height: 1.35;
+      cursor: pointer;
+      border-bottom: 1px solid var(--panel-border);
+    }
+
+    .address-suggestion:last-child {
+      border-bottom: none;
+    }
+
+    .address-suggestion:hover,
+    .address-suggestion.active {
+      background: rgba(59, 130, 246, 0.12);
+    }
+
+    .address-suggestion small {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+      margin-top: 0.15rem;
+    }
+
+    .geocode-status {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin: -0.35rem 0 0;
+      min-height: 1rem;
+    }
+
+    .geocode-status.error { color: var(--danger); }
+    .geocode-status.success { color: var(--success); }
+
+    .hint {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .result {
+      background: rgba(34, 197, 94, 0.08);
+      border: 1px solid rgba(34, 197, 94, 0.25);
+      border-radius: 12px;
+      padding: 1rem;
+      display: none;
+    }
+
+    .result.visible { display: block; }
+
+    .result.error {
+      background: rgba(239, 68, 68, 0.08);
+      border-color: rgba(239, 68, 68, 0.25);
+    }
+
+    .price {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--success);
+      margin: 0.25rem 0 0.75rem;
+    }
+
+    .result.error .price { color: var(--danger); font-size: 1rem; }
+
+    .spatial-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      font-size: 0.78rem;
+    }
+
+    .spatial-item {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      padding: 0.5rem 0.6rem;
+    }
+
+    .spatial-item span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.7rem;
+    }
+
+    .map-wrap {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      background: #1e293b;
+    }
+
+    .map-legend {
+      position: absolute;
+      bottom: 1rem;
+      right: 1rem;
+      z-index: 1000;
+      background: rgba(26, 35, 50, 0.92);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 0.65rem 0.75rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      pointer-events: none;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .legend-line {
+      width: 1.4rem;
+      height: 3px;
+      border-radius: 999px;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+      }
+      .sidebar { max-height: 45vh; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div>
+        <h1>Edmonton Price Predictor</h1>
+        <p class="subtitle">Enter an address or click the map to set a location, then fill in property details.</p>
+      </div>
+
+      <div class="metrics" id="metrics"></div>
+
+      <form id="predict-form">
+        <label>
+          Address
+          <div class="address-row">
+            <div class="address-autocomplete">
+              <input
+                type="text"
+                id="address"
+                placeholder="Start typing an Edmonton address…"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <div class="address-suggestions" id="address-suggestions"></div>
+            </div>
+            <button type="button" id="geocode-btn" class="secondary">Find</button>
+          </div>
+        </label>
+        <p class="geocode-status" id="geocode-status"></p>
+
+        <div class="row-2">
+          <label>
+            Latitude
+            <input type="number" id="latitude" step="0.000001" required />
+          </label>
+          <label>
+            Longitude
+            <input type="number" id="longitude" step="0.000001" required />
+          </label>
+        </div>
+
+        <div class="row-2">
+          <label>
+            Year Built
+            <input type="number" id="year_built" min="1800" max="2030" required />
+          </label>
+          <label>
+            Assessment Year
+            <input type="number" id="assessment_year" min="2012" max="2023" required />
+          </label>
+        </div>
+
+        <label>
+          Lot Size (m²)
+          <input type="number" id="lot_size" min="1" step="1" required />
+        </label>
+
+        <div class="row-2">
+          <label>
+            Garage
+            <select id="garage">
+              <option value="Y">Yes</option>
+              <option value="N">No</option>
+            </select>
+          </label>
+          <label>
+            Zoning
+            <select id="zoning" required></select>
+          </label>
+        </div>
+
+        <p class="hint">Model uses location, LRT/school/rec distances, lot size, age, garage, and zoning.</p>
+
+        <button type="submit" id="submit-btn">Predict Price</button>
+      </form>
+
+      <div class="result" id="result">
+        <div style="font-size:0.8rem;color:var(--muted)">Estimated assessed value</div>
+        <div class="price" id="price-display">—</div>
+        <div class="spatial-grid" id="spatial-grid"></div>
+      </div>
+    </aside>
+
+    <div class="map-wrap">
+      <main id="map"></main>
+      <div class="map-legend" id="map-legend"></div>
+    </div>
+  </div>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script>
+    let map, marker, lrtLayer;
+    let suggestTimer = null;
+    let suggestRequestId = 0;
+    let activeSuggestionIndex = -1;
+    let currentSuggestions = [];
+
+    const LRT_ROUTE_COLORS = {
+      "Capital Line": "#3b82f6",
+      "Metro Line": "#a855f7",
+      "Valley Line": "#f97316",
+    };
+
+    async function init() {
+      const [meta, routes] = await Promise.all([
+        fetch("/api/meta").then((r) => r.json()),
+        fetch("/api/lrt-routes").then((r) => r.json()),
+      ]);
+
+      document.getElementById("metrics").innerHTML = `
+        <span class="metric-pill">Test MAE $${Math.round(meta.model_metrics.mae).toLocaleString()}</span>
+        <span class="metric-pill">R² ${meta.model_metrics.r2.toFixed(3)}</span>
+      `;
+
+      const zoningSelect = document.getElementById("zoning");
+      meta.zoning_options.forEach((z) => {
+        const opt = document.createElement("option");
+        opt.value = z;
+        opt.textContent = z;
+        zoningSelect.appendChild(opt);
+      });
+
+      const d = meta.defaults;
+      document.getElementById("latitude").value = d.latitude;
+      document.getElementById("longitude").value = d.longitude;
+      document.getElementById("year_built").value = d.year_built;
+      document.getElementById("lot_size").value = d.lot_size;
+      document.getElementById("garage").value = d.garage;
+      document.getElementById("zoning").value = d.zoning;
+      document.getElementById("assessment_year").value = d.assessment_year;
+
+      map = L.map("map").setView([meta.map_center.latitude, meta.map_center.longitude], 12);
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CARTO',
+        maxZoom: 19,
+      }).addTo(map);
+
+      L.geoJSON(routes, {
+        style(feature) {
+          const name = feature.properties.lrt_route_name;
+          const color = LRT_ROUTE_COLORS[name] || "#3b82f6";
+          return {
+            color,
+            weight: 4,
+            opacity: 0.9,
+            lineCap: "round",
+            lineJoin: "round",
+          };
+        },
+        onEachFeature(feature, layer) {
+          const name = feature.properties.lrt_route_name;
+          layer.bindTooltip(name, { sticky: true, opacity: 0.9 });
+        },
+      }).addTo(map);
+
+      document.getElementById("map-legend").innerHTML = Object.entries(LRT_ROUTE_COLORS)
+        .map(
+          ([name, color]) =>
+            `<div class="legend-item"><span class="legend-line" style="background:${color}"></span>${name}</div>`
+        )
+        .join("");
+
+      lrtLayer = L.layerGroup().addTo(map);
+      meta.lrt_stations.forEach((s) => {
+        L.circleMarker([s.latitude, s.longitude], {
+          radius: 4,
+          color: "#60a5fa",
+          fillColor: "#3b82f6",
+          fillOpacity: 0.85,
+          weight: 1,
+        })
+          .bindTooltip(s.name, { direction: "top" })
+          .addTo(lrtLayer);
+      });
+
+      marker = L.marker([d.latitude, d.longitude], { draggable: true }).addTo(map);
+      marker.on("dragend", () => {
+        const { lat, lng } = marker.getLatLng();
+        document.getElementById("latitude").value = lat.toFixed(6);
+        document.getElementById("longitude").value = lng.toFixed(6);
+      });
+
+      map.on("click", (e) => {
+        marker.setLatLng(e.latlng);
+        document.getElementById("latitude").value = e.latlng.lat.toFixed(6);
+        document.getElementById("longitude").value = e.latlng.lng.toFixed(6);
+      });
+
+      ["latitude", "longitude"].forEach((id) => {
+        document.getElementById(id).addEventListener("change", syncMarkerFromInputs);
+      });
+
+      document.getElementById("geocode-btn").addEventListener("click", geocodeAddress);
+      document.getElementById("address").addEventListener("input", onAddressInput);
+      document.getElementById("address").addEventListener("keydown", onAddressKeyDown);
+      document.getElementById("address").addEventListener("blur", () => {
+        setTimeout(hideSuggestions, 150);
+      });
+      document.addEventListener("click", (e) => {
+        if (!e.target.closest(".address-autocomplete")) {
+          hideSuggestions();
+        }
+      });
+    }
+
+    function applyLocation(latitude, longitude, displayName) {
+      document.getElementById("latitude").value = latitude.toFixed(6);
+      document.getElementById("longitude").value = longitude.toFixed(6);
+      marker.setLatLng([latitude, longitude]);
+      map.panTo([latitude, longitude], { animate: true });
+      setGeocodeStatus(displayName, "success");
+    }
+
+    function hideSuggestions() {
+      const list = document.getElementById("address-suggestions");
+      list.classList.remove("visible");
+      list.innerHTML = "";
+      activeSuggestionIndex = -1;
+      currentSuggestions = [];
+    }
+
+    function renderSuggestions(suggestions) {
+      const list = document.getElementById("address-suggestions");
+      currentSuggestions = suggestions;
+      activeSuggestionIndex = -1;
+
+      if (!suggestions.length) {
+        hideSuggestions();
+        return;
+      }
+
+      list.innerHTML = suggestions
+        .map(
+          (item, index) => `
+            <div class="address-suggestion" data-index="${index}">
+              ${item.short_label}
+              <small>${item.display_name}</small>
+            </div>
+          `
+        )
+        .join("");
+
+      list.querySelectorAll(".address-suggestion").forEach((el) => {
+        el.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          selectSuggestion(Number(el.dataset.index));
+        });
+      });
+
+      list.classList.add("visible");
+    }
+
+    function highlightSuggestion(index) {
+      const items = document.querySelectorAll(".address-suggestion");
+      items.forEach((item, i) => {
+        item.classList.toggle("active", i === index);
+      });
+      activeSuggestionIndex = index;
+      if (index >= 0 && items[index]) {
+        items[index].scrollIntoView({ block: "nearest" });
+      }
+    }
+
+    function selectSuggestion(index) {
+      const item = currentSuggestions[index];
+      if (!item) return;
+
+      document.getElementById("address").value = item.short_label;
+      applyLocation(item.latitude, item.longitude, item.display_name);
+      hideSuggestions();
+    }
+
+    function onAddressInput() {
+      clearTimeout(suggestTimer);
+      const query = document.getElementById("address").value.trim();
+
+      if (query.length < 3) {
+        hideSuggestions();
+        return;
+      }
+
+      suggestTimer = setTimeout(() => fetchSuggestions(query), 450);
+    }
+
+    async function fetchSuggestions(query) {
+      const requestId = ++suggestRequestId;
+
+      try {
+        const res = await fetch(`/api/geocode/suggest?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        if (requestId !== suggestRequestId) return;
+
+        if (!res.ok) {
+          hideSuggestions();
+          return;
+        }
+
+        renderSuggestions(data.suggestions || []);
+      } catch {
+        if (requestId === suggestRequestId) hideSuggestions();
+      }
+    }
+
+    function onAddressKeyDown(e) {
+      const listVisible = document.getElementById("address-suggestions").classList.contains("visible");
+
+      if (e.key === "ArrowDown" && listVisible) {
+        e.preventDefault();
+        const next = activeSuggestionIndex + 1;
+        highlightSuggestion(next >= currentSuggestions.length ? 0 : next);
+        return;
+      }
+
+      if (e.key === "ArrowUp" && listVisible) {
+        e.preventDefault();
+        const prev = activeSuggestionIndex - 1;
+        highlightSuggestion(prev < 0 ? currentSuggestions.length - 1 : prev);
+        return;
+      }
+
+      if (e.key === "Escape") {
+        hideSuggestions();
+        return;
+      }
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (listVisible && activeSuggestionIndex >= 0) {
+          selectSuggestion(activeSuggestionIndex);
+        } else if (listVisible && currentSuggestions.length === 1) {
+          selectSuggestion(0);
+        } else {
+          geocodeAddress();
+        }
+      }
+    }
+
+    function setGeocodeStatus(message, type = "") {
+      const el = document.getElementById("geocode-status");
+      el.textContent = message;
+      el.className = `geocode-status${type ? ` ${type}` : ""}`;
+    }
+
+    async function geocodeAddress() {
+      const address = document.getElementById("address").value.trim();
+      const btn = document.getElementById("geocode-btn");
+
+      if (!address) {
+        setGeocodeStatus("Enter an address to search.", "error");
+        return;
+      }
+
+      hideSuggestions();
+      btn.disabled = true;
+      btn.textContent = "Finding…";
+      setGeocodeStatus("Looking up address…");
+
+      try {
+        const res = await fetch("/api/geocode", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          const detail = Array.isArray(data.detail)
+            ? data.detail.map((item) => item.msg || item).join(", ")
+            : data.detail;
+          throw new Error(detail || "Address lookup failed");
+        }
+
+        document.getElementById("address").value = data.short_label || data.display_name.split(",")[0];
+        applyLocation(data.latitude, data.longitude, data.display_name);
+      } catch (err) {
+        setGeocodeStatus(err.message, "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Find";
+      }
+    }
+
+    function syncMarkerFromInputs() {
+      const lat = parseFloat(document.getElementById("latitude").value);
+      const lng = parseFloat(document.getElementById("longitude").value);
+      if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+        marker.setLatLng([lat, lng]);
+        map.panTo([lat, lng]);
+      }
+    }
+
+    function formatDistance(m) {
+      if (m >= 1000) return `${(m / 1000).toFixed(1)} km`;
+      return `${Math.round(m)} m`;
+    }
+
+    function showSpatialFeatures(spatial) {
+      const items = [
+        ["Nearest LRT", formatDistance(spatial.distance_to_lrt_m)],
+        ["To U of A", formatDistance(spatial.distance_to_uofa_m)],
+        ["To West Ed. Mall", formatDistance(spatial.distance_to_west_edmonton_mall_m)],
+        ["LRT within 1 km", spatial.lrt_stations_within_1000m],
+        ["Rec facilities 1 km", spatial.rec_facilities_within_1000m],
+        ["School catchment", [
+          spatial.in_elementary_catchment ? "Elem" : null,
+          spatial.in_junior_catchment ? "Jr" : null,
+          spatial.in_senior_catchment ? "Sr" : null,
+        ].filter(Boolean).join(", ") || "None"],
+      ];
+
+      document.getElementById("spatial-grid").innerHTML = items
+        .map(([label, value]) => `<div class="spatial-item"><span>${label}</span>${value}</div>`)
+        .join("");
+    }
+
+    document.getElementById("predict-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("submit-btn");
+      const resultEl = document.getElementById("result");
+      const priceEl = document.getElementById("price-display");
+
+      btn.disabled = true;
+      btn.textContent = "Predicting…";
+      resultEl.classList.remove("visible", "error");
+
+      const payload = {
+        latitude: parseFloat(document.getElementById("latitude").value),
+        longitude: parseFloat(document.getElementById("longitude").value),
+        year_built: parseInt(document.getElementById("year_built").value, 10),
+        lot_size: parseFloat(document.getElementById("lot_size").value),
+        garage: document.getElementById("garage").value,
+        zoning: document.getElementById("zoning").value,
+        assessment_year: parseInt(document.getElementById("assessment_year").value, 10),
+      };
+
+      try {
+        const res = await fetch("/api/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Prediction failed");
+
+        priceEl.textContent = data.predicted_price_formatted;
+        showSpatialFeatures(data.spatial_features);
+        resultEl.classList.add("visible");
+        map.panTo([payload.latitude, payload.longitude]);
+      } catch (err) {
+        priceEl.textContent = err.message;
+        document.getElementById("spatial-grid").innerHTML = "";
+        resultEl.classList.add("visible", "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Predict Price";
+      }
+    });
+
+    init().catch((err) => {
+      document.getElementById("result").classList.add("visible", "error");
+      document.getElementById("price-display").textContent = `Failed to load: ${err.message}`;
+    });
+  </script>
+</body>
+</html>

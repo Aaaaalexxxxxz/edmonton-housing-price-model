@@ -1,0 +1,55 @@
+{
+  "baseline_mae": 28356.406275,
+  "top_10_features": [
+    {
+      "rank": 1,
+      "feature": "Log_Lot_Size",
+      "mae_increase": 72543.26327382812
+    },
+    {
+      "rank": 2,
+      "feature": "Actual Year Built",
+      "mae_increase": 37887.3353203125
+    },
+    {
+      "rank": 3,
+      "feature": "Property_Age_at_Assessment",
+      "mae_increase": 36292.219937109374
+    },
+    {
+      "rank": 4,
+      "feature": "Distance_to_LRT_meters",
+      "mae_increase": 31327.236217968748
+    },
+    {
+      "rank": 5,
+      "feature": "Longitude",
+      "mae_increase": 23120.716036718746
+    },
+    {
+      "rank": 6,
+      "feature": "Distance_to_nearest_Pool_m",
+      "mae_increase": 19107.553820312496
+    },
+    {
+      "rank": 7,
+      "feature": "Distance_to_nearest_Sports_m",
+      "mae_increase": 18243.157802343747
+    },
+    {
+      "rank": 8,
+      "feature": "Garage_Y",
+      "mae_increase": 18162.8326171875
+    },
+    {
+      "rank": 9,
+      "feature": "Assessment Year",
+      "mae_increase": 16630.925929687495
+    },
+    {
+      "rank": 10,
+      "feature": "Latitude",
+      "mae_increase": 11138.444479687496
+    }
+  ]
+}
