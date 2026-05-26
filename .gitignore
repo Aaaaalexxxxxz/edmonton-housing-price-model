@@ -7,5 +7,5 @@ __pycache__/
 .pytest_cache/
 
 # Training data is too large for GitHub (download separately)
-Property_Assessment_Data.csv
-Recreation_Facilities_*.csv
+data/Property_Assessment_Data.csv
+data/Recreation_Facilities_*.csv

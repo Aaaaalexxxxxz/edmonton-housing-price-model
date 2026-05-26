@@ -17,8 +17,9 @@ from pydantic import BaseModel, Field
 from prototype.predictor import PropertyPricePredictor
 
 ROOT = Path(__file__).resolve().parent.parent
+DATA_DIR = ROOT / "data"
 STATIC_DIR = Path(__file__).resolve().parent / "static"
-LRT_ROUTES_PATH = ROOT / "edmonton_lrt_routes.geojson"
+LRT_ROUTES_PATH = DATA_DIR / "edmonton_lrt_routes.geojson"
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 NOMINATIM_USER_AGENT = "EdmontonPropertyPricePrototype/0.1 (local research prototype)"
 EDMONTON_VIEWBOX = "-113.85,53.72,-113.25,53.30"

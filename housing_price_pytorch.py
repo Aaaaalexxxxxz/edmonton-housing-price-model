@@ -4,7 +4,7 @@ PyTorch neural network for Edmonton residential property price prediction.
 Uses historical assessment records, property coordinates, proximity to LRT,
 University of Alberta, West Edmonton Mall, EPSB school catchment areas,
 and recreation facilities as features.
-Data sources:
+Data sources (in `data/`):
   - Property_Assessment_Data.csv
   - Edmonton_lrt_stations.csv
   - edmonton_school_catchments.csv (extracted locations + catchment polygons)
@@ -33,14 +33,15 @@ from sklearn.preprocessing import StandardScaler
 from torch.utils.data import DataLoader, TensorDataset
 
 ROOT = Path(__file__).resolve().parent
-PROPERTY_CSV = ROOT / "Property_Assessment_Data.csv"
-LRT_CSV = ROOT / "Edmonton_lrt_stations.csv"
-SCHOOL_CSV = ROOT / "edmonton_school_catchments.csv"
-SCHOOL_LOCATIONS_CSV = ROOT / "edmonton_school_locations.csv"
-SCHOOL_POLYGONS_CSV = ROOT / "edmonton_school_catchment_polygons.csv"
-REC_CSV = ROOT / "edmonton_recreation_facilities.csv"
-DEFAULT_MODEL_PATH = ROOT / "housing_price_pytorch.pt"
-DEFAULT_ARTIFACTS_PATH = ROOT / "housing_price_pytorch_artifacts.json"
+DATA_DIR = ROOT / "data"
+PROPERTY_CSV = DATA_DIR / "Property_Assessment_Data.csv"
+LRT_CSV = DATA_DIR / "Edmonton_lrt_stations.csv"
+SCHOOL_CSV = DATA_DIR / "edmonton_school_catchments.csv"
+SCHOOL_LOCATIONS_CSV = DATA_DIR / "edmonton_school_locations.csv"
+SCHOOL_POLYGONS_CSV = DATA_DIR / "edmonton_school_catchment_polygons.csv"
+REC_CSV = DATA_DIR / "edmonton_recreation_facilities.csv"
+DEFAULT_MODEL_PATH = DATA_DIR / "housing_price_pytorch.pt"
+DEFAULT_ARTIFACTS_PATH = DATA_DIR / "housing_price_pytorch_artifacts.json"
 
 MIN_PRICE = 50_000
 MAX_PRICE = 2_500_000

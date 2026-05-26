@@ -113,7 +113,7 @@
     "mae": 28420.423464945434,
     "r2": 0.910528502169497
   },
-  "model_path": "/Users/alexzhang/Desktop/Property model/housing_price_pytorch.pt",
+  "model_path": "data/housing_price_pytorch.pt",
   "lrt_radii_m": [
     500,
     1000,

@@ -10,7 +10,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Download `Property_Assessment_Data.csv` from the [City of Edmonton Open Data Portal](https://data.edmonton.ca/) and place it in the project root before training.
+Download `Property_Assessment_Data.csv` from the [City of Edmonton Open Data Portal](https://data.edmonton.ca/) and place it in the `data/` folder before training.
 
 ## Train
 
